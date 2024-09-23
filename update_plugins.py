@@ -1,19 +1,7 @@
-try:
-    import concurrent.futures as futures
-except ImportError:
-    try:
-        import futures  # type: ignore
-    except ImportError:
-        futures = None # type: ignore
-
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen # type: ignore
-
 import re
 import shutil
 import tempfile
+import urllib.request
 import zipfile
 from contextlib import closing
 from io import BytesIO
@@ -79,7 +67,7 @@ SOURCE_DIR = path.join(path.dirname(__file__), "sources_non_forked_cache")
 
 def download_extract_replace(plugin_name, zip_path, temp_dir, source_dir):
     # Download and extract file in temp dir
-    with closing(urlopen(zip_path)) as req:
+    with closing(urllib.request.urlopen(zip_path)) as req:
         zip_f = zipfile.ZipFile(BytesIO(req.read()))
         zip_f.extractall(temp_dir)
         content_disp = req.headers.get("Content-Disposition")
@@ -112,13 +100,6 @@ if __name__ == "__main__":
     temp_directory = tempfile.mkdtemp()
 
     try:
-        if not path.isdir(SOURCE_DIR) or not listdir(SOURCE_DIR):
-            shutil.copytree(FALLBACK_SOURCE_DIR, SOURCE_DIR)
-
-        if futures:
-            with futures.ThreadPoolExecutor(16) as executor:
-                executor.map(update, PLUGINS.splitlines())
-        else:
-            [update(x) for x in PLUGINS.splitlines()]
+        [update(x) for x in PLUGINS.splitlines()]
     finally:
         shutil.rmtree(temp_directory)
