@@ -1,6 +1,15 @@
+try:
+    import concurrent.futures as futures
+except ImportError:
+    try:
+        import futures
+    except ImportError:
+        futures = None
+
 import re
 import shutil
 import tempfile
+import time
 import urllib.request
 import zipfile
 from contextlib import closing
@@ -100,6 +109,14 @@ if __name__ == "__main__":
     temp_directory = tempfile.mkdtemp()
 
     try:
-        [update(x) for x in PLUGINS.splitlines()]
+        if futures:
+            max_workers = 4
+            with futures.ThreadPoolExecutor(max_workers) as executor:
+                for (i, plugin) in enumerate(PLUGINS.splitlines(), start=1):
+                    executor.submit(update, plugin)
+                    if i % max_workers == 0:
+                        time.sleep(0.5)
+        else:
+            [update(x) for x in PLUGINS.splitlines()]
     finally:
         shutil.rmtree(temp_directory)
