@@ -14,7 +14,7 @@ import urllib.request
 import zipfile
 from contextlib import closing
 from io import BytesIO
-from os import listdir, path
+from os import path
 
 # --- Globals ----------------------------------------------
 PLUGINS = """
@@ -68,7 +68,7 @@ dracula https://github.com/dracula/vim
 copilot.vim https://github.com/github/copilot.vim
 """.strip()
 
-GITHUB_ZIP = "%s/archive/master.zip"
+GITHUB_ZIP = "%s/archive/HEAD.zip"
 
 FALLBACK_SOURCE_DIR = path.join(path.dirname(__file__), "sources_non_forked")
 SOURCE_DIR = path.join(path.dirname(__file__), "sources_non_forked_cache")
@@ -76,9 +76,9 @@ SOURCE_DIR = path.join(path.dirname(__file__), "sources_non_forked_cache")
 
 def download_extract_replace(plugin_name, zip_path, temp_dir, source_dir):
     # Download and extract file in temp dir
-    with closing(urllib.request.urlopen(zip_path)) as req:
-        zip_f = zipfile.ZipFile(BytesIO(req.read()))
-        zip_f.extractall(temp_dir)
+    with closing(urllib.request.urlopen(zip_path, timeout=60)) as req:
+        with zipfile.ZipFile(BytesIO(req.read())) as zip_f:
+            zip_f.extractall(temp_dir)
         content_disp = req.headers.get("Content-Disposition")
 
     filename = re.findall("filename=(.+).zip", content_disp)[0]
@@ -115,7 +115,7 @@ if __name__ == "__main__":
                 for (i, plugin) in enumerate(PLUGINS.splitlines(), start=1):
                     executor.submit(update, plugin)
                     if i % max_workers == 0:
-                        time.sleep(0.5)
+                        time.sleep(0.1)
         else:
             [update(x) for x in PLUGINS.splitlines()]
     finally:
